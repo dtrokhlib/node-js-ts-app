@@ -6,6 +6,8 @@ import { TYPES } from '../types';
 import { ILogger } from '../logger/logger.interface';
 import 'reflect-metadata';
 import { IUserController } from './user.controller.interface';
+import { UserLoginDto } from './dto/user-login.dto';
+import { UserRegisterDto } from './dto/user-register.dto';
 @injectable()
 export class UserController extends BaseController implements IUserController {
 	constructor(@inject(TYPES.ILogger) loggerService: ILogger) {
@@ -16,12 +18,13 @@ export class UserController extends BaseController implements IUserController {
 		]);
 	}
 
-	login(req: Request, res: Response, next: NextFunction): void {
-		next(new HTTPError('Auth error', 401, 'login'));
+	login(req: Request<{}, {}, UserLoginDto>, res: Response, next: NextFunction): void {
+		console.log(req.body);
+		this.ok(res, 'login');
 	}
 
-	register(req: Request, res: Response, next: NextFunction): void {
+	register(req: Request<{}, {}, UserRegisterDto>, res: Response, next: NextFunction): void {
+		console.log(req.body);
 		this.ok(res, 'register');
-		next();
 	}
 }
