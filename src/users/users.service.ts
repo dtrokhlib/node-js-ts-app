@@ -7,6 +7,7 @@ import { UserRegisterDto } from './dto/user-register.dto';
 import { User } from './user-entity';
 import { IUserService } from './user.service.interface';
 import { IUsersRepository } from './users.repository.interface';
+import { compare } from 'bcryptjs';
 
 @injectable()
 export class UserService implements IUserService {
@@ -26,7 +27,16 @@ export class UserService implements IUserService {
 		return await this.usersRepository.create(newUser);
 	}
 
-	async validateUser(dto: UserLoginDto): Promise<boolean> {
-		return true;
+	async validateUser({ email, password }: UserLoginDto): Promise<boolean> {
+		const user = await this.usersRepository.find(email);
+		if (!user) {
+			return false;
+		}
+		const newUser = new User(user.email, user.name, user.password);
+		return newUser.comparePassword(password);
+	}
+
+	async getUserInfo(email: string): Promise<UserModel | null> {
+		return await this.usersRepository.find(email);
 	}
 }

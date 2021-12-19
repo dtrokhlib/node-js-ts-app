@@ -11,27 +11,54 @@ import { UserRegisterDto } from './dto/user-register.dto';
 import { User } from './user-entity';
 import { UserService } from './users.service';
 import { ValidateMiddleware } from '../common/validate.middleware';
+import { sign } from 'jsonwebtoken';
+import { ConfigService } from '../config/config.service';
+import { IConfigService } from '../config/config.service.interface';
+import { IUserService } from './user.service.interface';
+import { AuthGuard } from '../common/auth.guard';
 @injectable()
 export class UserController extends BaseController implements IUserController {
 	constructor(
-		@inject(TYPES.ILogger) loggerService: ILogger,
-		@inject(TYPES.UserService) private userService: UserService,
+		@inject(TYPES.ILogger) private loggerService: ILogger,
+		@inject(TYPES.UserService) private userService: IUserService,
+		@inject(TYPES.ConfigService) private configService: IConfigService,
 	) {
 		super(loggerService);
 		this.bindRoutes([
-			{ path: '/login', func: this.login, method: 'post' },
+			{
+				path: '/login',
+				func: this.login,
+				method: 'post',
+				middlewares: [new ValidateMiddleware(UserLoginDto)],
+			},
 			{
 				path: '/register',
 				func: this.register,
 				method: 'post',
 				middlewares: [new ValidateMiddleware(UserRegisterDto)],
 			},
+			{
+				path: '/info',
+				func: this.info,
+				method: 'get',
+				middlewares: [new AuthGuard()],
+			},
 		]);
 	}
 
-	login(req: Request<{}, {}, UserLoginDto>, res: Response, next: NextFunction): void {
-		console.log(req.body);
-		this.ok(res, 'login');
+	async login(
+		{ body }: Request<{}, {}, UserLoginDto>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> {
+		const result = await this.userService.validateUser(body);
+		if (!result) {
+			return next(
+				new HTTPError('User with this email does not exist or password do not match!', 422),
+			);
+		}
+		const jwt = await this.signJWT(body.email, this.configService.get('SECRET'));
+		this.ok(res, { jwt });
 	}
 
 	async register(
@@ -44,5 +71,33 @@ export class UserController extends BaseController implements IUserController {
 			return next(new HTTPError('This user is already exist!', 422));
 		}
 		this.ok(res, { email: result.email, id: result.id });
+	}
+
+	async info(
+		{ user }: Request<{}, {}, UserRegisterDto>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> {
+		const userInfo = await this.userService.getUserInfo(user);
+		this.ok(res, { email: userInfo?.email, id: userInfo?.id });
+	}
+
+	private signJWT(email: string, secret: string): Promise<string> {
+		return new Promise((resolve, reject) => {
+			sign(
+				{
+					email,
+					iat: Math.floor(Date.now() / 1000),
+				},
+				secret,
+				{ algorithm: 'HS256' },
+				(err, token) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(token as string);
+				},
+			);
+		});
 	}
 }
