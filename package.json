@@ -11,12 +11,14 @@
 		"start": "node ./dist/main.js",
 		"build": "tsc",
 		"dev:inspect": "nodemon -e ts,json --exec node --inspect=localhost:9222 -r ts-node/register src/main.ts",
-		"dev": "nodemon"
+		"dev": "nodemon",
+		"generate": "prisma generate"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
+		"@prisma/client": "^3.6.0",
 		"@types/bcryptjs": "^2.4.2",
 		"bcryptjs": "^2.4.3",
 		"body-parser": "^1.19.1",
@@ -37,6 +39,7 @@
 		"eslint-plugin-prettier": "^4.0.0",
 		"nodemon": "^2.0.15",
 		"prettier": "^2.5.1",
+		"prisma": "^3.6.0",
 		"ts-node": "^10.4.0",
 		"typescript": "^4.5.4"
 	}
